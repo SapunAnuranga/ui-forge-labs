@@ -4,7 +4,8 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import Stripe from 'stripe';
-import { readDb, writeDb } from './db.js';
+import { connectDB } from './db.js';
+import { Admin, Category, Template, Message, Order } from './models/index.js';
 
 const app = express();
 app.use(cors());
@@ -30,120 +31,98 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Wrap async route handlers so errors are caught automatically
+const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
+  console.error(err);
+  res.status(500).json({ error: err.message || 'Server error' });
+});
+
 /* -------------------------------- AUTH API -------------------------------- */
 
-// Admin login
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', wrap(async (req, res) => {
   const { username, password } = req.body;
-  const db = readDb();
-
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  if (username !== db.admin.username) {
-    return res.status(401).json({ error: 'Invalid username or password' });
-  }
+  const admin = await Admin.findOne({ username });
+  if (!admin) return res.status(401).json({ error: 'Invalid username or password' });
 
-  const ok = bcrypt.compareSync(password, db.admin.passwordHash);
-  if (!ok) {
-    return res.status(401).json({ error: 'Invalid username or password' });
-  }
+  const ok = bcrypt.compareSync(password, admin.passwordHash);
+  if (!ok) return res.status(401).json({ error: 'Invalid username or password' });
 
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '12h' });
   res.json({ token, username });
-});
+}));
 
-// Change admin username/password (requires current password)
-app.post('/api/auth/change-credentials', requireAuth, (req, res) => {
+app.post('/api/auth/change-credentials', requireAuth, wrap(async (req, res) => {
   const { currentPassword, newUsername, newPassword } = req.body;
-  const db = readDb();
 
-  const ok = bcrypt.compareSync(currentPassword || '', db.admin.passwordHash);
-  if (!ok) {
-    return res.status(401).json({ error: 'Current password is incorrect' });
-  }
+  const admin = await Admin.findOne({ username: req.admin.username });
+  if (!admin) return res.status(404).json({ error: 'Admin not found' });
 
-  if (newUsername && newUsername.trim()) {
-    db.admin.username = newUsername.trim();
-  }
-  if (newPassword && newPassword.trim()) {
-    db.admin.passwordHash = bcrypt.hashSync(newPassword.trim(), 10);
-  }
+  const ok = bcrypt.compareSync(currentPassword || '', admin.passwordHash);
+  if (!ok) return res.status(401).json({ error: 'Current password is incorrect' });
 
-  writeDb(db);
-  res.json({ success: true, username: db.admin.username });
-});
+  if (newUsername && newUsername.trim()) admin.username = newUsername.trim();
+  if (newPassword && newPassword.trim()) admin.passwordHash = bcrypt.hashSync(newPassword.trim(), 10);
 
-// Verify token (used by frontend on app load)
+  await admin.save();
+  res.json({ success: true, username: admin.username });
+}));
+
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ username: req.admin.username });
 });
 
 /* ----------------------------- CATEGORIES API ----------------------------- */
 
-app.get('/api/categories', (req, res) => {
-  const db = readDb();
-  res.json(db.categories);
-});
+app.get('/api/categories', wrap(async (req, res) => {
+  const categories = await Category.find().sort({ name: 1 });
+  res.json(categories);
+}));
 
-app.post('/api/categories', requireAuth, (req, res) => {
-  const db = readDb();
+app.post('/api/categories', requireAuth, wrap(async (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Category name is required' });
   }
-  const exists = db.categories.some(
-    (c) => c.name.toLowerCase() === name.trim().toLowerCase()
-  );
-  if (exists) {
-    return res.status(409).json({ error: 'Category already exists' });
-  }
-  const newCat = { id: Date.now(), name: name.trim() };
-  db.categories.push(newCat);
-  writeDb(db);
-  res.status(201).json(newCat);
-});
+  const exists = await Category.findOne({ name: new RegExp(`^${name.trim()}$`, 'i') });
+  if (exists) return res.status(409).json({ error: 'Category already exists' });
 
-app.delete('/api/categories/:id', requireAuth, (req, res) => {
-  const db = readDb();
-  const id = Number(req.params.id);
-  db.categories = db.categories.filter((c) => c.id !== id);
-  writeDb(db);
+  const newCat = await Category.create({ name: name.trim() });
+  res.status(201).json(newCat);
+}));
+
+app.delete('/api/categories/:id', requireAuth, wrap(async (req, res) => {
+  await Category.findByIdAndDelete(req.params.id);
   res.json({ success: true });
-});
+}));
 
 /* ----------------------------- TEMPLATES API ------------------------------ */
 
-// Public: only active templates
-app.get('/api/templates', (req, res) => {
-  const db = readDb();
-  res.json(db.templates.filter((t) => t.active));
-});
+app.get('/api/templates', wrap(async (req, res) => {
+  const templates = await Template.find({ active: true }).sort({ date: -1 });
+  res.json(templates);
+}));
 
-// Admin: all templates (active + inactive)
-app.get('/api/admin/templates', requireAuth, (req, res) => {
-  const db = readDb();
-  res.json(db.templates);
-});
+app.get('/api/admin/templates', requireAuth, wrap(async (req, res) => {
+  const templates = await Template.find().sort({ date: -1 });
+  res.json(templates);
+}));
 
-// Public: single template by id
-app.get('/api/templates/:id', (req, res) => {
-  const db = readDb();
-  const tpl = db.templates.find((t) => t.id === Number(req.params.id));
+app.get('/api/templates/:id', wrap(async (req, res) => {
+  const tpl = await Template.findById(req.params.id);
   if (!tpl) return res.status(404).json({ error: 'Template not found' });
   res.json(tpl);
-});
+}));
 
-// Admin: create
-app.post('/api/admin/templates', requireAuth, (req, res) => {
-  const db = readDb();
+app.post('/api/admin/templates', requireAuth, wrap(async (req, res) => {
   const body = req.body;
   if (!body.title || !body.description) {
     return res.status(400).json({ error: 'Title and description are required' });
   }
-  const newTpl = {
-    id: Date.now(),
+  const newTpl = await Template.create({
     title: body.title.trim(),
     category: body.category || 'Uncategorized',
     price: parseInt(body.price) || 0,
@@ -153,78 +132,52 @@ app.post('/api/admin/templates', requireAuth, (req, res) => {
     active: body.active ?? true,
     rating: 5.0,
     downloads: 0,
-    date: new Date().toISOString(),
-  };
-  db.templates.push(newTpl);
-  writeDb(db);
+  });
   res.status(201).json(newTpl);
-});
+}));
 
-// Admin: update
-app.put('/api/admin/templates/:id', requireAuth, (req, res) => {
-  const db = readDb();
-  const id = Number(req.params.id);
-  const idx = db.templates.findIndex((t) => t.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Template not found' });
+app.put('/api/admin/templates/:id', requireAuth, wrap(async (req, res) => {
+  const updated = await Template.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!updated) return res.status(404).json({ error: 'Template not found' });
+  res.json(updated);
+}));
 
-  db.templates[idx] = { ...db.templates[idx], ...req.body, id };
-  writeDb(db);
-  res.json(db.templates[idx]);
-});
-
-// Admin: delete
-app.delete('/api/admin/templates/:id', requireAuth, (req, res) => {
-  const db = readDb();
-  const id = Number(req.params.id);
-  db.templates = db.templates.filter((t) => t.id !== id);
-  writeDb(db);
+app.delete('/api/admin/templates/:id', requireAuth, wrap(async (req, res) => {
+  await Template.findByIdAndDelete(req.params.id);
   res.json({ success: true });
-});
+}));
 
 /* ------------------------------ MESSAGES API ------------------------------ */
 
-// Public: submit contact message
-app.post('/api/messages', (req, res) => {
+app.post('/api/messages', wrap(async (req, res) => {
   const { name, email, subject, message } = req.body;
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Name, email and message are required' });
   }
-  const db = readDb();
-  const newMsg = {
-    id: Date.now(),
+  const newMsg = await Message.create({
     name: name.trim(),
     email: email.trim(),
     subject: (subject || '').trim(),
     message: message.trim(),
-    date: new Date().toISOString(),
-  };
-  db.messages.push(newMsg);
-  writeDb(db);
+  });
   res.status(201).json(newMsg);
-});
+}));
 
-// Admin: get all messages
-app.get('/api/admin/messages', requireAuth, (req, res) => {
-  const db = readDb();
-  res.json(db.messages);
-});
+app.get('/api/admin/messages', requireAuth, wrap(async (req, res) => {
+  const messages = await Message.find().sort({ date: -1 });
+  res.json(messages);
+}));
 
-// Admin: delete a message
-app.delete('/api/admin/messages/:id', requireAuth, (req, res) => {
-  const db = readDb();
-  const id = Number(req.params.id);
-  db.messages = db.messages.filter((m) => m.id !== id);
-  writeDb(db);
+app.delete('/api/admin/messages/:id', requireAuth, wrap(async (req, res) => {
+  await Message.findByIdAndDelete(req.params.id);
   res.json({ success: true });
-});
+}));
 
 /* ------------------------------ PAYMENT API -------------------------------- */
 
-// Create a Stripe Checkout session for a template purchase
-app.post('/api/payment/create-checkout-session', async (req, res) => {
+app.post('/api/payment/create-checkout-session', wrap(async (req, res) => {
   const { templateId } = req.body;
-  const db = readDb();
-  const tpl = db.templates.find((t) => t.id === Number(templateId));
+  const tpl = await Template.findById(templateId);
   if (!tpl) return res.status(404).json({ error: 'Template not found' });
 
   if (!stripe) {
@@ -233,50 +186,50 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
     });
   }
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: { name: tpl.title, description: tpl.description },
-            unit_amount: tpl.price * 100,
-          },
-          quantity: 1,
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: { name: tpl.title, description: tpl.description },
+          unit_amount: tpl.price * 100,
         },
-      ],
-      success_url: `${FRONTEND_URL}/template/${tpl.id}?payment=success`,
-      cancel_url: `${FRONTEND_URL}/template/${tpl.id}?payment=cancelled`,
-    });
+        quantity: 1,
+      },
+    ],
+    success_url: `${FRONTEND_URL}/template/${tpl._id}?payment=success`,
+    cancel_url: `${FRONTEND_URL}/template/${tpl._id}?payment=cancelled`,
+  });
 
-    db.orders.push({
-      id: Date.now(),
-      templateId: tpl.id,
-      title: tpl.title,
-      price: tpl.price,
-      sessionId: session.id,
-      status: 'pending',
-      date: new Date().toISOString(),
-    });
-    writeDb(db);
+  await Order.create({
+    templateId: tpl._id,
+    title: tpl.title,
+    price: tpl.price,
+    sessionId: session.id,
+    status: 'pending',
+  });
 
-    res.json({ url: session.url });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  res.json({ url: session.url });
+}));
 
-// Admin: list orders
-app.get('/api/admin/orders', requireAuth, (req, res) => {
-  const db = readDb();
-  res.json(db.orders);
-});
+app.get('/api/admin/orders', requireAuth, wrap(async (req, res) => {
+  const orders = await Order.find().sort({ date: -1 });
+  res.json(orders);
+}));
 
 /* --------------------------------------------------------------------------- */
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ LumenUI backend running on http://localhost:${PORT}`);
-});
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ LumenUI backend running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Failed to connect to database:', err.message);
+    process.exit(1);
+  });
