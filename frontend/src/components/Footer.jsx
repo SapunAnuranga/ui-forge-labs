@@ -29,7 +29,7 @@ const Footer = () => {
   };
 
   const navLinks = [
-    { to: '/templates', label: 'Templates' },
+    { to: '/templatesfooter', label: 'Templates' },
     { to: '/pricing', label: 'Pricing' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
@@ -105,17 +105,48 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Support</h4>
-            <ul className="space-y-2.5">
-              {['Documentation', 'License', 'Changelog', 'FAQ'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-gray-400 hover:text-white text-sm transition">
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+  <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">
+    Support
+  </h4>
+
+  <ul className="space-y-2.5">
+    <li>
+      <Link
+        to="/documentation"
+        className="text-gray-400 hover:text-white text-sm transition"
+      >
+        Documentation
+      </Link>
+    </li>
+
+    <li>
+      <Link
+        to="/license"
+        className="text-gray-400 hover:text-white text-sm transition"
+      >
+        License
+      </Link>
+    </li>
+
+    <li>
+      <Link
+        to="/changelog"
+        className="text-gray-400 hover:text-white text-sm transition"
+      >
+        Changelog
+      </Link>
+    </li>
+
+    <li>
+      <Link
+        to="/faq"
+        className="text-gray-400 hover:text-white text-sm transition"
+      >
+        FAQ
+      </Link>
+    </li>
+  </ul>
+</div>
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Stay updated</h4>
@@ -144,11 +175,26 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-gray-500">
           <p>© {currentYear} LumenUI. All rights reserved.</p>
-          <div className="flex gap-5">
-            <a href="#" className="hover:text-gray-300 transition">Privacy</a>
-            <a href="#" className="hover:text-gray-300 transition">Terms</a>
-            <a href="#" className="hover:text-gray-300 transition">License</a>
-          </div>
+          {/* <div className="flex gap-5">
+            <a href="/" className="hover:text-gray-300 transition">Privacy</a>
+            <a href="/" className="hover:text-gray-300 transition">Terms</a>
+            <a href="/license" className="hover:text-gray-300 transition">License</a>
+          </div> */}
+
+
+<div className="flex gap-5">
+  <Link to="/" className="hover:text-gray-300 transition">
+    Privacy
+  </Link>
+
+  <Link to="/" className="hover:text-gray-300 transition">
+    Terms
+  </Link>
+
+  <Link to="/license" className="hover:text-gray-300 transition">
+    License
+  </Link>
+</div>
         </div>
       </div>
     </footer>
@@ -156,3 +202,7 @@ const Footer = () => {
 };
 
 export default Footer;
+
+
+
+

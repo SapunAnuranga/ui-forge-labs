@@ -5,32 +5,7 @@ import { BookOpen, Download, Code2, Palette, Globe, Zap, Shield } from 'lucide-r
 const DocumentationPage = () => {
   return (
     <div className="min-h-screen bg-[#030303] text-zinc-200">
-      {/* Navbar */}
-      <nav className="bg-[#030303]/80 border-b border-zinc-900 sticky top-0 z-50 backdrop-blur-md">
-        <div className="container mx-auto px-6 py-4 max-w-6xl">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
-              UI Forge<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Labs</span>
-            </Link>
-
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm text-zinc-400 hover:text-white transition-colors">Home</Link>
-              <Link to="/templates" className="text-sm text-zinc-400 hover:text-white transition-colors">Templates</Link>
-              <Link to="/pricing" className="text-sm text-zinc-400 hover:text-white transition-colors">Pricing</Link>
-              <Link to="/license" className="text-sm text-zinc-400 hover:text-white transition-colors">License</Link>
-              <Link to="/changelog" className="text-sm text-zinc-400 hover:text-white transition-colors">Changelog</Link>
-              <Link to="/faq" className="text-sm text-zinc-400 hover:text-white transition-colors">FAQ</Link>
-            </div>
-
-            <Link
-              to="/templates"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-2xl text-sm font-semibold hover:bg-zinc-200 transition-all"
-            >
-              Browse Templates
-            </Link>
-          </div>
-        </div>
-      </nav>
+    
 
       <div className="max-w-4xl mx-auto px-6 py-16">
         {/* Header */}

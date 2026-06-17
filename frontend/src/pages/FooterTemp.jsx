@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Sparkles, ShoppingCart } from 'lucide-react';
+import EcomFeature from "../assets/EcomScreenShots/BeautyScreenshot.png";
 
 const TemplatesPage = () => {
   const [activeCategory, setActiveCategory] = useState('All');
@@ -37,7 +38,7 @@ const TemplatesPage = () => {
       category: "E-commerce",
       description: "Premium e-commerce storefront with product detail and cart.",
       tech: ["React", "Vite", "Tailwind", "Zustand"],
-      image: "https://picsum.photos/id/106/600/400",
+      image: EcomFeature,
       liveDemo: "#",
       customize: "/customize/lumen"
     },
@@ -50,32 +51,7 @@ const TemplatesPage = () => {
 
   return (
     <div className="min-h-screen bg-[#030303] text-zinc-200">
-      {/* Navbar */}
-      <nav className="bg-[#030303]/80 border-b border-zinc-900 sticky top-0 z-50 backdrop-blur-md">
-        <div className="container mx-auto px-6 py-4 max-w-6xl">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
-              UI Forge<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Labs</span>
-            </Link>
-
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm text-zinc-400 hover:text-white transition-colors">Home</Link>
-              <Link to="/templates" className="text-sm text-white font-medium">Templates</Link>
-              <Link to="/pricing" className="text-sm text-zinc-400 hover:text-white transition-colors">Pricing</Link>
-              <Link to="/license" className="text-sm text-zinc-400 hover:text-white transition-colors">License</Link>
-              <Link to="/docs" className="text-sm text-zinc-400 hover:text-white transition-colors">Docs</Link>
-              <Link to="/faq" className="text-sm text-zinc-400 hover:text-white transition-colors">FAQ</Link>
-            </div>
-
-            <Link
-              to="/pricing"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-2xl text-sm font-semibold hover:bg-zinc-200 transition-all"
-            >
-              Upgrade License
-            </Link>
-          </div>
-        </div>
-      </nav>
+     
 
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Header */}

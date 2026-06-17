@@ -9,6 +9,13 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import TemplateDetails from './pages/TemplateDetails';
 import AdminLayout from './pages/Admin/AdminLayout';
+import LicensePage from './pages/License';
+import FAQPage from './pages/FAQ';
+import ChangelogPage from './pages/Changelog';
+import DocumentPage from './pages/Documentation';
+import TemplateFooterPage from './pages/FooterTemp';
+
+
 
 const Layout = () => {
   const location = useLocation();
@@ -35,9 +42,20 @@ function App() {
             <Route path="/templates" element={<Templates />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/about" element={<About />} />
+            <Route path="/license" element={<LicensePage />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/template/:id" element={<TemplateDetails />} />
             <Route path="/admin/*" element={<AdminLayout />} />
+
+
+             
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/license" element={<LicensePage />} />
+            <Route path="/changelog" element={<ChangelogPage />} />
+            <Route path="/documentation" element={<DocumentPage />} />
+            <Route path="/templatesfooter" element={<TemplateFooterPage />} />
+
           </Route>
         </Routes>
       </div>
@@ -46,3 +64,7 @@ function App() {
 }
 
 export default App;
+
+
+
+
